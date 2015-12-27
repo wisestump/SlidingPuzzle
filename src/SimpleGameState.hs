@@ -12,6 +12,9 @@ data GameData = GameData { state :: GameState, emptyInd :: IndType, size :: Int 
 type IndType = (Int,Int)
 type GameState = Map.Map IndType Cell
 
+allMoves :: [Move]
+allMoves = [minBound :: Move ..]
+
 makeMove :: Move -> GameData -> GameData
 makeMove move g@GameData{..} = do
   case (indMove size emptyInd move) of
@@ -47,8 +50,14 @@ swapElems i j state = do
     let s1 = Map.update (\z -> y) i state
     Map.update (\z -> x) j s1
 
-startState :: RandomGen g => g -> GameData
-startState = undefined
+startState :: RandomGen g => Int -> g -> GameData
+startState size g = applyN (size - 1) (makeMove SimpleGameState.Right) $ applyN (size - 1) (makeMove Down) $ randState 
+ where
+  randState = fst $ foldl (\(state,g) x -> let (move, g1) = randMove g in (makeMove move state,g1)) (finishState size, g) [1..1000]
+  randMove g = let (i,g1) = randomR (0, (length allMoves) - 1) g in (allMoves !! i, g1)
+
+applyN :: Int -> (a -> a) -> (a -> a)
+applyN = (foldr (.) id.) . replicate
 
 finishState :: Int -> GameData
 finishState size = do
