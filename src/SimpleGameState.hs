@@ -12,8 +12,8 @@ data GameData = GameData { state :: GameState, emptyInd :: IndType, size :: Int 
 type IndType = (Int,Int)
 type GameState = Map.Map IndType Cell
 
-makeMove :: GameData -> Move -> GameData
-makeMove g@GameData{..} move = do
+makeMove :: Move -> GameData -> GameData
+makeMove move g@GameData{..} = do
   case (indMove size emptyInd move) of
     Just next -> do
       let nextState = swapElems emptyInd next state
@@ -41,17 +41,17 @@ swapElems i j state = do
   let x = Map.lookup i state
   let y = Map.lookup j state
   
-  if (isNothing x || isNothing y) then do
+  if (isNothing x || isNothing y) then
+    state
+  else do
     let s1 = Map.update (\z -> y) i state
     Map.update (\z -> x) j s1
-  else
-    state
 
 startState :: RandomGen g => g -> GameData
 startState = undefined
 
 finishState :: Int -> GameData
 finishState size = do
-  let state = Map.fromList $ zip [(i, j) | i <- [0 .. size - 1], j <- [0 .. size - 1]] $ map (\x -> if x == size*size then Empty else Piece x) [1..size*size]
+  let state = Map.fromList $ zip [(j, i) | i <- [0 .. size - 1], j <- [0 .. size - 1]] $ map (\x -> if x == size*size then Empty else Piece x) [1..size*size]
   let emptyInd = (size-1,size-1)
   GameData{..}
