@@ -1,5 +1,7 @@
 {-# LANGUAGE LambdaCase, RecordWildCards #-}
 
+module GUI where
+
 import Graphics.Gloss
 import Graphics.Gloss.Interface.Pure.Game
 import Graphics.Gloss.Data.ViewPort
@@ -15,11 +17,8 @@ fps = 30
 pieceSize :: Float
 pieceSize = 100
 
-fieldSize :: Int
-fieldSize = 4
-
-window :: Display
-window = InWindow "Sliding puzzle" ((round pieceSize) * fieldSize, (round pieceSize) * fieldSize) (0, 0)
+window :: Int -> Display
+window fieldSize = InWindow "Sliding puzzle" ((round pieceSize) * fieldSize, (round pieceSize) * fieldSize) (0, 0)
 
 backgroundColor, pieceColor, textColor :: Color
 backgroundColor = white
@@ -30,8 +29,8 @@ gridColor = black
 both :: (a -> b) -> (a, a) -> (b, b)
 both f (a, b) = (f a, f b)
 
-viewPort :: ViewPort
-viewPort = ViewPort (both (negate . (/ 2) . (subtract pieceSize)) $ pieceToScreen (fieldSize, fieldSize)) 0 1
+viewPort :: Int -> ViewPort
+viewPort fieldSize = ViewPort (both (negate . (/ 2) . (subtract pieceSize)) $ pieceToScreen (fieldSize, fieldSize)) 0 1
 
 updater :: t -> a -> a
 updater _ = id
@@ -48,7 +47,7 @@ label :: String -> Picture
 label str = let offset = fromIntegral $ -5 * (length str) in translate offset offset $ scale 0.15 0.15 $ color textColor $ text str
 
 renderer :: GS.GameData -> Picture
-renderer GS.GameData{..} = applyViewPortToPicture viewPort $ pictures $ pieces ++ grid
+renderer GS.GameData{..} = applyViewPortToPicture (viewPort size) $ pictures $ pieces ++ grid
   where
     pieces = map 
       (\((i, j), cellState) -> place (i, size - j - 1) $ \case { GS.Empty -> empty; GS.Piece num -> piece num } $ cellState) 
@@ -62,7 +61,7 @@ renderer GS.GameData{..} = applyViewPortToPicture viewPort $ pictures $ pieces +
 pieceToScreen :: (Int, Int) -> (Float, Float)
 pieceToScreen = both ((* pieceSize) . fromIntegral)
 
-main :: IO ()
-main = do
+startGUI :: Int -> IO ()
+startGUI size = do
   gen <- newStdGen
-  play window backgroundColor fps (GS.startState fieldSize gen) renderer handler updater
+  play (window size) backgroundColor fps (GS.startState size gen) renderer handler updater
