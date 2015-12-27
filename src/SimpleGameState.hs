@@ -5,7 +5,7 @@ import qualified Data.Map as Map
 import System.Random
 import Data.Maybe
 
-data Cell = Empty | Piece Int deriving (Show)
+data Cell = Empty | Piece Int deriving (Show, Eq)
 data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show, Read)
 data GameData = GameData { state :: GameState, emptyInd :: IndType, size :: Int } deriving (Show)
 
@@ -15,8 +15,23 @@ type GameState = Map.Map IndType Cell
 allMoves :: [Move]
 allMoves = [minBound :: Move ..]
 
+makeMoveWithCheck :: Move -> GameData -> GameData
+makeMoveWithCheck move g@GameData{..} =
+  let nextState = makeMove move g in
+    if isFinishState nextState then
+      setFinal nextState
+    else
+      nextState
+ where
+  setFinal GameData{..} = do
+    let
+        nextState = Map.update (\z -> Just $ Piece (size * size)) (size - 1, size - 1) state
+    let
+        state = nextState
+        emptyInd = (-1, -1) in GameData{..}
+
 makeMove :: Move -> GameData -> GameData
-makeMove move g@GameData{..} = do
+makeMove move g@GameData{..} =
   case (indMove size emptyInd move) of
     Just next -> do
       let nextState = swapElems emptyInd next state
@@ -64,3 +79,8 @@ finishState size = do
   let state = Map.fromList $ zip [(j, i) | i <- [0 .. size - 1], j <- [0 .. size - 1]] $ map (\x -> if x == size*size then Empty else Piece x) [1..size*size]
   let emptyInd = (size-1,size-1)
   GameData{..}
+
+isFinishState :: GameData -> Bool
+isFinishState g = do
+  let finish = finishState $ size g
+  all id $ zipWith (==) (Map.assocs $ state finish) (Map.assocs $ state g)
