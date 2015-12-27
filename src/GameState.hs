@@ -16,7 +16,7 @@ import Control.Monad.Identity
 import Data.Maybe
 
 data Cell = Empty | Piece Int deriving (Show)
-data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show)
+data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show, Read)
 
 type IndType = (Int,Int)
 type GameState s = STArray s IndType Cell
