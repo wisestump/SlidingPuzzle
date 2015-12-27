@@ -37,10 +37,10 @@ updater :: t -> a -> a
 updater _ = id
 
 handler :: Event -> GS.GameData -> GS.GameData
-handler (EventKey (SpecialKey KeyUp) Down _ _) gs = GS.makeMove gs GS.Down
-handler (EventKey (SpecialKey KeyDown) Down _ _) gs = GS.makeMove gs GS.Up
-handler (EventKey (SpecialKey KeyLeft) Down _ _) gs = GS.makeMove gs GS.Right
-handler (EventKey (SpecialKey KeyRight) Down _ _) gs = GS.makeMove gs GS.Left
+handler (EventKey (SpecialKey KeyUp) Down _ _) gs = GS.makeMove GS.Down gs
+handler (EventKey (SpecialKey KeyDown) Down _ _) gs = GS.makeMove GS.Up gs
+handler (EventKey (SpecialKey KeyLeft) Down _ _) gs = GS.makeMove GS.Right gs
+handler (EventKey (SpecialKey KeyRight) Down _ _) gs = GS.makeMove GS.Left gs
 
 handler _ gs = gs
 
@@ -51,7 +51,7 @@ renderer :: GS.GameData -> Picture
 renderer GS.GameData{..} = applyViewPortToPicture viewPort $ pictures $ pieces ++ grid
   where
     pieces = map 
-      (\(pos, cellState) -> place pos $ \case { GS.Empty -> empty; GS.Piece num -> piece num } $ cellState) 
+      (\((i, j), cellState) -> place (i, size - j - 1) $ \case { GS.Empty -> empty; GS.Piece num -> piece num } $ cellState) 
       $ Map.assocs state
     grid = map (\pos -> place pos $ gridCell) [(i, j) | i <- [0 .. size - 1], j <- [0 .. size - 1]]
     gridCell = color gridColor $ rectangleWire pieceSize pieceSize
