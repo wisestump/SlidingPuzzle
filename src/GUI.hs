@@ -37,10 +37,10 @@ updater :: t -> a -> a
 updater _ = id
 
 handler :: Event -> GS.GameData -> GS.GameData
-handler (EventKey (SpecialKey KeyUp) Down _ _) gs = GS.makeMove GS.Down gs
-handler (EventKey (SpecialKey KeyDown) Down _ _) gs = GS.makeMove GS.Up gs
-handler (EventKey (SpecialKey KeyLeft) Down _ _) gs = GS.makeMove GS.Right gs
-handler (EventKey (SpecialKey KeyRight) Down _ _) gs = GS.makeMove GS.Left gs
+handler (EventKey (SpecialKey KeyUp) Down _ _) gs = GS.makeMoveWithCheck GS.Down gs
+handler (EventKey (SpecialKey KeyDown) Down _ _) gs = GS.makeMoveWithCheck GS.Up gs
+handler (EventKey (SpecialKey KeyLeft) Down _ _) gs = GS.makeMoveWithCheck GS.Right gs
+handler (EventKey (SpecialKey KeyRight) Down _ _) gs = GS.makeMoveWithCheck GS.Left gs
 
 handler _ gs = gs
 
