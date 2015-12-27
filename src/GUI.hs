@@ -65,4 +65,4 @@ pieceToScreen = both ((* pieceSize) . fromIntegral)
 main :: IO ()
 main = do
   gen <- newStdGen
-  play window backgroundColor fps (GS.finishState fieldSize) renderer handler updater
+  play window backgroundColor fps (GS.startState fieldSize gen) renderer handler updater
