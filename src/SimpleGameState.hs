@@ -7,7 +7,7 @@ import Data.Maybe
 
 data Cell = Empty | Piece Int deriving (Show)
 data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show, Read)
-data GameData = GameData { state :: GameState, emptyInd :: IndType, size :: Int }
+data GameData = GameData { state :: GameState, emptyInd :: IndType, size :: Int } deriving (Show)
 
 type IndType = (Int,Int)
 type GameState = Map.Map IndType Cell
@@ -49,3 +49,9 @@ swapElems i j state = do
 
 startState :: RandomGen g => g -> GameData
 startState = undefined
+
+finishState :: Int -> GameData
+finishState size = do
+  let state = Map.fromList $ zip [(i, j) | i <- [0 .. size - 1], j <- [0 .. size - 1]] $ map (\x -> if x == size*size then Empty else Piece x) [1..size*size]
+  let emptyInd = (size-1,size-1)
+  GameData{..}
