@@ -13,6 +13,7 @@ import Prelude hiding (Either(Left),Either(Right))
 import Control.Monad.Trans.Identity
 import Control.Monad.Identity
 import Data.Maybe
+import System.Random
 
 data Cell = Empty | Piece Int deriving (Show, Eq)
 data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show, Read)
@@ -25,6 +26,16 @@ data FieldData = FieldData { size :: Int }
 allMoves :: [Move]
 allMoves = [minBound :: Move ..]
 
+startState :: (RandomGen g, MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => g -> m ()
+startState g = do
+  finishState
+  FieldData{..} <- ask
+  forM_ [1..size - 1] $ \i -> do
+    makeMove Right
+  forM_ [1..size - 1] $ \i -> do
+    makeMove Down
+  forM_ (take 1000 $ map (\i -> allMoves !! i) $ randomRs (0, (length allMoves) - 1) g) $ \m ->
+    makeMove m
 
 makeMoveWithCheck :: (MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => Move -> m ()
 makeMoveWithCheck move = do
