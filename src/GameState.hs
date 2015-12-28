@@ -35,7 +35,7 @@ startState g = do
   forM_ [1..size - 1] $ \i -> do
     makeMove Left
   forM_ [1..size - 1] $ \i -> do
-    makeMove Down
+    makeMove Up
 
 makeMoveWithCheck :: (MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => Move -> m ()
 makeMoveWithCheck move = do
