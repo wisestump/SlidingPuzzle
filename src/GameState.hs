@@ -30,12 +30,12 @@ startState :: (RandomGen g, MS.MonadState GameData m, MonadReader FieldData m, M
 startState g = do
   finishState
   FieldData{..} <- ask
-  forM_ [1..size - 1] $ \i -> do
-    makeMove Right
-  forM_ [1..size - 1] $ \i -> do
-    makeMove Down
   forM_ (take 1000 $ map (\i -> allMoves !! i) $ randomRs (0, (length allMoves) - 1) g) $ \m ->
     makeMove m
+  forM_ [1..size - 1] $ \i -> do
+    makeMove Left
+  forM_ [1..size - 1] $ \i -> do
+    makeMove Down
 
 makeMoveWithCheck :: (MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => Move -> m ()
 makeMoveWithCheck move = do
