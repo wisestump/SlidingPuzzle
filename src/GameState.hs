@@ -14,7 +14,7 @@ import Control.Monad.Trans.Identity
 import Control.Monad.Identity
 import Data.Maybe
 
-data Cell = Empty | Piece Int deriving (Show)
+data Cell = Empty | Piece Int deriving (Show, Eq)
 data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show, Read)
 
 type IndType = (Int,Int)
@@ -24,6 +24,20 @@ data FieldData = FieldData { size :: Int }
 
 allMoves :: [Move]
 allMoves = [minBound :: Move ..]
+
+
+makeMoveWithCheck :: (MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => Move -> m ()
+makeMoveWithCheck move = do
+  GameData{..} <- MS.get
+  FieldData{..} <- ask
+  makeMove move
+  fin <- isFinish
+  if fin then do
+    liftIO $ writeArray state (size-1,size-1) $ Piece (size*size)
+    let
+      emptyInd = (-1, -1) in MS.put $ GameData{..}
+  else
+    return ()
 
 -- RecordWildCards
 -- FlexibleContexts 
@@ -46,6 +60,14 @@ finishState = do
     state = arr
     emptyInd = (size-1, size-1) in MS.put $ GameData{..}
 
+isFinish :: (MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => m Bool
+isFinish = do
+  g <- MS.get
+  FieldData{..} <- ask
+  arr <- liftIO $ getAssocs $ state g
+  let finish = zip [(i, j) | i <- [0 .. size - 1], j <- [0 .. size - 1]] $ map (\x -> if x == size*size then Empty else Piece x) [1..size*size]
+  return $ all id $ zipWith (==) arr finish
+
 indMove :: Int -> IndType -> Move -> Maybe IndType
 indMove size empty move = let (x,y) = indMove' empty move in
   if x < 0 || x > size-1
@@ -55,10 +77,10 @@ indMove size empty move = let (x,y) = indMove' empty move in
     Just (x,y)
  where
   indMove' :: IndType -> Move -> IndType
-  indMove' (x,y) Left = (x-1,y)
-  indMove' (x,y) Right = (x+1,y)
-  indMove' (x,y) Up = (x,y-1)
-  indMove' (x,y) Down = (x,y+1)
+  indMove' (x,y) Left = (x,y+1)
+  indMove' (x,y) Right = (x,y-1)
+  indMove' (x,y) Up = (x+1,y)
+  indMove' (x,y) Down = (x-1,y)
 
 moveFromIndex :: (MS.MonadState GameData m, MonadReader FieldData m) => IndType -> m (Maybe Move)
 moveFromIndex (x,y) = do
