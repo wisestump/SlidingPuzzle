@@ -37,6 +37,15 @@ makeMove move = do
       let emptyInd = next in MS.put GameData{..}
     Nothing -> return ()
 
+finishState :: (MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => m ()
+finishState = do
+  GameData{..} <- MS.get
+  FieldData{..} <- ask
+  arr <- liftIO $ newListArray ((0,0),(size-1, size-1)) $ map (\x -> if x == size*size then Empty else Piece x) [1..size*size]
+  let
+    state = arr
+    emptyInd = (size-1, size-1) in MS.put $ GameData{..}
+
 indMove :: Int -> IndType -> Move -> Maybe IndType
 indMove size empty move = let (x,y) = indMove' empty move in
   if x < 0 || x > size-1
