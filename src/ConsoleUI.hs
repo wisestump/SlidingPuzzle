@@ -91,11 +91,12 @@ printField = do
           . map (pieceToStr maxLen)) 
         $ chunksOf fieldSize $ stArray
 
-startConsoleUI = do
+start = do
   gen <- liftIO newStdGen
   startState gen
   gameLoop
 
-main = do
+startConsoleUI size = do
   arr <- newListArray ((0, 0), (0, 0)) [Empty]
-  runStateT (runReaderT startConsoleUI (FieldData 2)) (GameData arr (0, 0))
+  runStateT (runReaderT start (FieldData size)) (GameData arr (0, 0))
+  return ()
