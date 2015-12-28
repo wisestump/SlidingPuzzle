@@ -1,9 +1,11 @@
-{-# LANGUAGE FlexibleContexts, ConstraintKinds, RecordWildCards #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module GameState where
 
-import Data.STRef
+import Control.Monad.State
+import Control.Monad.Reader
 import Control.Monad.ST
+import Data.STRef
 import qualified Control.Monad.State.Class as MS
 import Control.Monad.Reader
 import Control.Monad
@@ -21,7 +23,6 @@ data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show, Read)
 type IndType = (Int,Int)
 type GameState s = STArray s IndType Cell
 -- ConstraintKinds
-type GameStateMonad s m =  MArray (STArray s) Cell m
 data GameData s = GameData { state :: GameState s, emptyInd :: IndType }
 data FieldData = FieldData { size :: Int }
 
@@ -33,13 +34,13 @@ finishData = undefined
 
 -- RecordWildCards
 -- FlexibleContexts 
-makeMove :: (MS.MonadState (GameData s) m, GameStateMonad s m, MonadReader FieldData m) => Move -> m ()
+makeMove :: Move -> ReaderT FieldData (StateT (GameData s) (ST s)) ()
 makeMove move = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
   case (indMove size emptyInd move) of
     Just next -> do
-      swapElems emptyInd next state
+      swapElems emptyInd next
       let emptyInd = next in MS.put GameData{..}
     Nothing -> return ()
 
@@ -57,7 +58,7 @@ indMove size empty move = let (x,y) = indMove' empty move in
   indMove' (x,y) Up = (x,y-1)
   indMove' (x,y) Down = (x,y+1)
 
-moveFromIndex :: (MS.MonadState (GameData s) m, GameStateMonad s m, MonadReader FieldData m) => IndType -> m (Maybe Move)
+moveFromIndex :: IndType -> ReaderT FieldData (StateT (GameData s) (ST s)) (Maybe Move)
 moveFromIndex (x,y) = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
@@ -70,21 +71,23 @@ moveFromIndex (x,y) = do
   vectorToMove (0,1) = Just Down
   vectorToMove _ = Nothing
 
-isMoveCorrect :: (MS.MonadState (GameData s) m, GameStateMonad s m, MonadReader FieldData m) => Move -> m Bool
+isMoveCorrect :: Move -> ReaderT FieldData (StateT (GameData s) (ST s)) Bool
 isMoveCorrect move = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
   return $ isJust $ indMove size emptyInd move
 
-nextMoves :: (MS.MonadState (GameData s) m, GameStateMonad s m, MonadReader FieldData m) => m [Move]
+nextMoves :: ReaderT FieldData (StateT (GameData s) (ST s)) [Move]
 nextMoves = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
   return $ filter (isJust . indMove size emptyInd) allMoves
 
-swapElems :: (MArray (STArray s) e m, Ix i) => i -> i -> STArray s i e -> m ()
-swapElems i j arr = do
-  vi <- readArray arr i
-  vj <- readArray arr j
-  writeArray arr i vj
-  writeArray arr j vi
+swapElems :: IndType -> IndType -> ReaderT FieldData (StateT (GameData s) (ST s)) ()
+swapElems i j = do
+  GameData{..} <- get
+  let arr = state
+  vi <- lift $ lift $ readArray arr i
+  vj <- lift $ lift $ readArray arr j
+  lift $ lift $ writeArray arr i vj
+  lift $ lift $ writeArray arr j vi
