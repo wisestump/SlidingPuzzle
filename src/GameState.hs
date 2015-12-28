@@ -1,17 +1,14 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts, RecordWildCards #-}
 
 module GameState where
 
-import Control.Monad.State
-import Control.Monad.Reader
-import Control.Monad.ST
 import Data.STRef
+import Control.Monad.ST
 import qualified Control.Monad.State.Class as MS
 import Control.Monad.Reader
 import Control.Monad
 import Data.Array
-import Data.Array.ST
-import Data.Array.MArray
+import Data.Array.IO
 import Prelude hiding (Either(Left),Either(Right))
 import Control.Monad.Trans.Identity
 import Control.Monad.Identity
@@ -21,26 +18,22 @@ data Cell = Empty | Piece Int deriving (Show)
 data Move = Left | Right | Up | Down deriving (Enum, Bounded, Show, Read)
 
 type IndType = (Int,Int)
-type GameState s = STArray s IndType Cell
--- ConstraintKinds
-data GameData s = GameData { state :: GameState s, emptyInd :: IndType }
+type GameState = IOArray IndType Cell
+data GameData = GameData { state :: GameState, emptyInd :: IndType }
 data FieldData = FieldData { size :: Int }
 
 allMoves :: [Move]
 allMoves = [minBound :: Move ..]
 
-finishData :: ST s (GameData s)
-finishData = undefined
-
 -- RecordWildCards
 -- FlexibleContexts 
-makeMove :: Move -> ReaderT FieldData (StateT (GameData s) (ST s)) ()
+makeMove :: (MS.MonadState GameData m, MonadReader FieldData m, MonadIO m) => Move -> m ()
 makeMove move = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
   case (indMove size emptyInd move) of
     Just next -> do
-      swapElems emptyInd next
+      swapElems emptyInd next state
       let emptyInd = next in MS.put GameData{..}
     Nothing -> return ()
 
@@ -58,7 +51,7 @@ indMove size empty move = let (x,y) = indMove' empty move in
   indMove' (x,y) Up = (x,y-1)
   indMove' (x,y) Down = (x,y+1)
 
-moveFromIndex :: IndType -> ReaderT FieldData (StateT (GameData s) (ST s)) (Maybe Move)
+moveFromIndex :: (MS.MonadState GameData m, MonadReader FieldData m) => IndType -> m (Maybe Move)
 moveFromIndex (x,y) = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
@@ -71,23 +64,21 @@ moveFromIndex (x,y) = do
   vectorToMove (0,1) = Just Down
   vectorToMove _ = Nothing
 
-isMoveCorrect :: Move -> ReaderT FieldData (StateT (GameData s) (ST s)) Bool
+isMoveCorrect :: (MS.MonadState GameData m, MonadReader FieldData m) => Move -> m Bool
 isMoveCorrect move = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
   return $ isJust $ indMove size emptyInd move
 
-nextMoves :: ReaderT FieldData (StateT (GameData s) (ST s)) [Move]
+nextMoves :: (MS.MonadState GameData m, MonadReader FieldData m) => m [Move]
 nextMoves = do
   GameData{..} <- MS.get
   FieldData{..} <- ask
   return $ filter (isJust . indMove size emptyInd) allMoves
 
-swapElems :: IndType -> IndType -> ReaderT FieldData (StateT (GameData s) (ST s)) ()
-swapElems i j = do
-  GameData{..} <- get
-  let arr = state
-  vi <- lift $ lift $ readArray arr i
-  vj <- lift $ lift $ readArray arr j
-  lift $ lift $ writeArray arr i vj
-  lift $ lift $ writeArray arr j vi
+swapElems :: (Ix i, MonadIO m) => i -> i -> IOArray i e -> m ()
+swapElems i j arr = do
+  vi <- liftIO $ readArray arr i
+  vj <- liftIO $ readArray arr j
+  liftIO $ writeArray arr i vj
+  liftIO $ writeArray arr j vi
